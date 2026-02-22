@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>(*^ ‿ <*)♡</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section id="start-screen" class="panel active">
+        <h1>(*^ ‿ <*)♡</h1>
+        <p>hello stinker. it's time to test your love. muahhahahaha</p>
+        <button id="start-btn" class="btn">start quest</button>
+      </section>
+
+      <section id="game-screen" class="panel">
+        <div class="hud">
+          <p id="level-label">level 1</p>
+          <p id="hearts-label">evil apps caught: 0/4</p>
+          <p id="timer-label">time left: 00:00</p>
+          <p id="tip-label">use arrow keys / wasd or tap controls</p>
+        </div>
+        <canvas id="game" width="600" height="420" aria-label="game canvas"></canvas>
+        <div class="controls" aria-label="touch controls">
+          <button data-dir="up">▲</button>
+          <div>
+            <button data-dir="left">◀</button>
+            <button data-dir="down">▼</button>
+            <button data-dir="right">▶</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="end-screen" class="panel">
+        <h2>yayayy you completed the quest ^__^</h2>
+        <p id="final-message">
+          happy vday hehehehehehhe i love you stinky baby
+        </p>
+        <button id="play-again-btn" class="btn">play again</button>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
