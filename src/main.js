@@ -1,3 +1,7 @@
+import { state, loadLevel, isBlocked } from "./game/state.js";
+
+import { levels, level1AssetMap } from "./game/levels.js";
+
 const startScreen = document.getElementById("start-screen");
 const gameScreen = document.getElementById("game-screen");
 const endScreen = document.getElementById("end-screen");
@@ -18,87 +22,6 @@ const WORLD_HEIGHT = 10;
 const BOARD_WIDTH = WORLD_WIDTH * CELL_SIZE;
 const BOARD_HEIGHT = WORLD_HEIGHT * CELL_SIZE;
 const iconAssets = {};
-const level1AssetMap = {
-  instagram: "assets/INSTAGRAM.png",
-  youtube: "assets/YOUTUBE.png",
-  chatgpt: "assets/CHATGPT.png",
-  tiktok: "assets/TIKTOK.png"
-};
-
-const levels = [
-  {
-    title: "level 1: 101 ways to not pay attention to my gf",
-    counterLabel: "evil apps caught",
-    description: "collect all your evil apps before i delete them all muahhahahaha",
-    timeLimit: 35,
-    itemIcons: ["instagram", "youtube", "chatgpt", "tiktok"],
-    start: { x: 1, y: 1 },
-    itemSpots: [
-      { x: 4, y: 2 },
-      { x: 7, y: 1 },
-      { x: 10, y: 4 },
-      { x: 12, y: 8 }
-    ],
-    walls: [
-      [3, 3], [4, 3], [5, 3], [8, 3], [9, 3], [10, 3],
-      [2, 6], [3, 6], [4, 6], [8, 6], [9, 6], [10, 6], [11, 6],
-      [6, 8], [7, 8], [8, 8]
-    ]
-  },
-  {
-    title: "level 2: favorite places to be stinky",
-    counterLabel: "stink zones",
-    description: "how many places can you be stinky in before its stinkiness overload?",
-    timeLimit: 20,
-    itemIcons: ["🛌", "🖥️", "🚽", "🎮", "🛏️"],
-    start: { x: 1, y: 8 },
-    itemSpots: [
-      { x: 3, y: 2 },
-      { x: 5, y: 5 },
-      { x: 9, y: 2 },
-      { x: 12, y: 7 },
-      { x: 11, y: 1 }
-    ],
-    walls: [
-      [2, 4], [3, 4], [4, 4], [5, 4], [7, 4], [8, 4], [9, 4], [10, 4],
-      [6, 2], [6, 3], [6, 4], [6, 5], [6, 6],
-      [3, 7], [4, 7], [5, 7], [8, 7], [9, 7], [10, 7]
-    ]
-  },
-  {
-    title: "level 3: its time for a snack run!",
-    counterLabel: "snacks collected",
-    description: "collect all your favourite snacks before snack time ends. OR ELSE.",
-    timeLimit: 15,
-    itemIcons: ["🍞", "🍳", "🧀", "🥪", "🥓", "🌭"],
-    start: { x: 1, y: 1 },
-    itemSpots: [
-      { x: 2, y: 8 },
-      { x: 4, y: 1 },
-      { x: 6, y: 8 },
-      { x: 8, y: 1 },
-      { x: 10, y: 8 },
-      { x: 12, y: 1 }
-    ],
-    walls: [
-      [2, 3], [3, 3], [4, 3], [5, 3], [6, 3],
-      [8, 3], [9, 3], [10, 3], [11, 3],
-      [2, 6], [3, 6], [4, 6], [5, 6],
-      [7, 6], [8, 6], [9, 6], [10, 6], [11, 6],
-      [7, 1], [7, 2], [7, 3], [7, 4], [7, 5]
-    ]
-  }
-];
-
-let player = { x: 1, y: 1 };
-let currentLevel = 0;
-let collected = 0;
-let items = [];
-let wallSet = new Set();
-let gameActive = false;
-let timeRemaining = 0;
-let lastTickSecond = -1;
-let lastFrameAt = 0;
 
 function setupHiDpiCanvas() {
   const dpr = Math.max(1, window.devicePixelRatio || 1);
@@ -125,67 +48,47 @@ function switchScreen(show) {
   show.classList.add("active");
 }
 
-function wallKey(x, y) {
-  return `${x},${y}`;
-}
 
 function updateCounterLabel() {
-  const level = levels[currentLevel];
-  heartsLabel.textContent = `${level.counterLabel}: ${collected}/${items.length}`;
+  const level = levels[state.currentLevel];
+  heartsLabel.textContent = `${level.counterLabel}: ${state.collected}/${state.items.length}`;
 }
 
 function updateTimerLabel() {
-  const seconds = Math.max(0, Math.ceil(timeRemaining));
+  const seconds = Math.max(0, Math.ceil(state.timeRemaining));
   const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
   const ss = String(seconds % 60).padStart(2, "0");
   timerLabel.textContent = `time left: ${mm}:${ss}`;
 }
 
-function loadLevel(index) {
-  const level = levels[index];
-  player = { ...level.start };
-  items = level.itemSpots.map((spot, itemIndex) => ({
-    ...spot,
-    icon: level.itemIcons[itemIndex],
-    found: false
-  }));
-  wallSet = new Set(level.walls.map(([x, y]) => wallKey(x, y)));
-  collected = 0;
-  timeRemaining = level.timeLimit;
-  lastTickSecond = -1;
-
-  levelLabel.textContent = level.title;
-  tipLabel.textContent = level.description;
-  updateCounterLabel();
-  updateTimerLabel();
-}
-
-function isBlocked(x, y) {
-  if (x < 0 || y < 0 || x >= WORLD_WIDTH || y >= WORLD_HEIGHT) return true;
-  return wallSet.has(wallKey(x, y));
-}
-
 function move(dx, dy) {
-  if (!gameActive) return;
-  const nx = player.x + dx;
-  const ny = player.y + dy;
+  if (!state.gameActive) return;
+  const nx = state.player.x + dx;
+  const ny = state.player.y + dy;
   if (isBlocked(nx, ny)) return;
 
-  player.x = nx;
-  player.y = ny;
+  state.player.x = nx;
+  state.player.y = ny;
 
-  items.forEach((item) => {
-    if (!item.found && item.x === player.x && item.y === player.y) {
+  state.items.forEach((item) => {
+    if (!item.found && item.x === state.player.x && item.y === state.player.y) {
       item.found = true;
-      collected += 1;
+      state.collected += 1;
       updateCounterLabel();
     }
   });
 
-  if (collected === items.length) {
-    if (currentLevel < levels.length - 1) {
-      currentLevel += 1;
-      loadLevel(currentLevel);
+  if (state.collected === state.items.length) {
+    if (state.currentLevel < levels.length - 1) {
+      state.currentLevel += 1;
+      loadLevel(state.currentLevel);
+
+      const level = levels[state.currentLevel];
+      levelLabel.textContent = level.title;
+      tipLabel.textContent = level.description;
+      updateCounterLabel();
+      updateTimerLabel();
+
     } else {
       finishGame();
     }
@@ -199,7 +102,7 @@ function drawGrid() {
     for (let x = 0; x < WORLD_WIDTH; x += 1) {
       const px = x * CELL_SIZE;
       const py = y * CELL_SIZE;
-      const isWall = wallSet.has(wallKey(x, y));
+      const isWall = state.wallSet.has(`${x},${y}`);
       ctx.fillStyle = isWall ? "#ffccdb" : "#fff8fb";
       ctx.fillRect(px, py, CELL_SIZE - 2, CELL_SIZE - 2);
     }
@@ -217,7 +120,7 @@ function drawRoundedRect(x, y, width, height, radius) {
 }
 
 function drawItems() {
-  items.forEach((item) => {
+  state.items.forEach((item) => {
     if (item.found) return;
 
     const px = item.x * CELL_SIZE;
@@ -256,28 +159,28 @@ function drawItems() {
 function drawPlayer() {
   ctx.textAlign = "left";
   ctx.font = '33px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
-  ctx.fillText("🦹🏽‍♂️", player.x * CELL_SIZE + 4, player.y * CELL_SIZE + 32);
+  ctx.fillText("🦹🏽‍♂️", state.player.x * CELL_SIZE + 4, state.player.y * CELL_SIZE + 32);
 }
 
 function tickTimer(deltaSeconds) {
-  timeRemaining -= deltaSeconds;
-  const whole = Math.ceil(Math.max(0, timeRemaining));
+  state.timeRemaining -= deltaSeconds;
+  const whole = Math.ceil(Math.max(0, state.timeRemaining));
 
-  if (whole !== lastTickSecond) {
-    lastTickSecond = whole;
+  if (whole !== state.lastTickSecond) {
+    state.lastTickSecond = whole;
     updateTimerLabel();
   }
 
-  if (timeRemaining <= 0) {
-    loadLevel(currentLevel);
+  if (state.timeRemaining <= 0) {
+    loadLevel(state.currentLevel);
   }
 }
 
 function draw(now = 0) {
-  const deltaSeconds = lastFrameAt === 0 ? 0 : (now - lastFrameAt) / 1000;
-  lastFrameAt = now;
+  const deltaSeconds = state.lastFrameAt === 0 ? 0 : (now - state.lastFrameAt) / 1000;
+  state.lastFrameAt = now;
 
-  if (gameActive) {
+  if (state.gameActive) {
     tickTimer(deltaSeconds);
     drawGrid();
     drawItems();
@@ -288,15 +191,20 @@ function draw(now = 0) {
 }
 
 function startGame() {
-  currentLevel = 0;
-  gameActive = true;
-  lastFrameAt = 0;
-  loadLevel(currentLevel);
+  state.currentLevel = 0;
+  state.gameActive = true;
+  state.lastFrameAt = 0;
+  loadLevel(state.currentLevel);
+  const level = levels[state.currentLevel];
+  levelLabel.textContent = level.title;
+  tipLabel.textContent = level.description;
+  updateCounterLabel();
+  updateTimerLabel();
   switchScreen(gameScreen);
 }
 
 function finishGame() {
-  gameActive = false;
+  state.gameActive = false;
   finalMessage.textContent = "happy vday hehehehehehhe i love you stinky baby";
   switchScreen(endScreen);
 }
