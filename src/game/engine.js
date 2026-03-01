@@ -1,8 +1,16 @@
 import { state, loadLevel, isBlocked } from "./state.js";
 import { levels } from "./levels.js";
 
-export function createEngine({ renderer, ui, switchToGameScreen, switchToEndScreen }) {
+export function createEngine({
+  renderer,
+  ui,
+  switchToGameScreen,
+  switchToEndScreen,
+  showLevelClearOverlay, 
+  levelClearDelayMs = 600, 
+}) {
   let rafStarted = false;
+  let isTransitioningLevel = false; 
 
   function syncLevelUI() {
     const level = levels[state.currentLevel];
@@ -33,8 +41,15 @@ export function createEngine({ renderer, ui, switchToGameScreen, switchToEndScre
     switchToEndScreen();
   }
 
+  function advanceToNextLevel() {
+    state.currentLevel += 1;
+    loadLevel(state.currentLevel);
+    syncLevelUI();
+  }
+
   function move(dx, dy) {
     if (!state.gameActive) return;
+    if (isTransitioningLevel) return; 
 
     const nx = state.player.x + dx;
     const ny = state.player.y + dy;
@@ -54,9 +69,19 @@ export function createEngine({ renderer, ui, switchToGameScreen, switchToEndScre
 
     if (state.collected === state.items.length) {
       if (state.currentLevel < levels.length - 1) {
-        state.currentLevel += 1;
-        loadLevel(state.currentLevel);
-        syncLevelUI();
+	isTransitioningLevel = true;
+
+	advanceToNextLevel();
+
+	if (typeof showLevelClearOverlay === "function") {
+	  showLevelClearOverlay(() => {
+	    isTransitioningLevel = false;
+	  }, levelClearDelayMs);
+	} else {
+	  setTimeout(() => {
+	    isTransitioningLevel = false;
+	  }, levelClearDelayMs);
+	}
       } else {
         finishGame();
       }
@@ -88,6 +113,7 @@ export function createEngine({ renderer, ui, switchToGameScreen, switchToEndScre
     state.currentLevel = 0;
     state.gameActive = true;
     state.lastFrameAt = 0;
+    isTransitioningLevel = false;
 
     loadLevel(state.currentLevel);
     syncLevelUI();
@@ -98,6 +124,7 @@ export function createEngine({ renderer, ui, switchToGameScreen, switchToEndScre
 
   function resetGameToStartScreen(switchToStartScreen) {
     state.gameActive = false;
+    isTransitioningLevel = false;
     switchToStartScreen();
   }
 

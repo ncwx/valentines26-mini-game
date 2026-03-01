@@ -19,10 +19,12 @@ const finalMessage = document.getElementById("final-message");
 const controlButtons = document.querySelectorAll(".controls button");
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+const levelClearOverlay = document.getElementById("level-clear-overlay");
 
-// --- Assets (PNG icons for level 1) ---
+// --- Assets ---
 const iconAssets = {};
 
+// --- Canvas Setup ---
 function setupHiDpiCanvas() {
   const dpr = Math.max(1, window.devicePixelRatio || 1);
   canvas.style.width = `${BOARD_WIDTH}px`;
@@ -33,6 +35,7 @@ function setupHiDpiCanvas() {
   ctx.imageSmoothingEnabled = true;
 }
 
+// --- Asset Preload ---
 function preloadLevel1Assets() {
   Object.entries(level1AssetMap).forEach(([key, src]) => {
     const img = new Image();
@@ -41,6 +44,7 @@ function preloadLevel1Assets() {
   });
 }
 
+// --- Screen Switching ---
 function switchScreen(show) {
   startScreen.classList.remove("active");
   gameScreen.classList.remove("active");
@@ -48,6 +52,7 @@ function switchScreen(show) {
   show.classList.add("active");
 }
 
+// --- UI Updates ---
 function updateCounterLabel() {
   const level = levels[state.currentLevel];
   heartsLabel.textContent = `${level.counterLabel}: ${state.collected}/${state.items.length}`;
@@ -60,9 +65,25 @@ function updateTimerLabel() {
   timerLabel.textContent = `time left: ${mm}:${ss}`;
 }
 
-// --- Create renderer + engine ---
+// --- Level Clear Overlay ---
+function showLevelClearOverlay(done, durationMs = 1200) {
+  if (!levelClearOverlay) {
+    done?.();
+    return;
+  }
+
+  levelClearOverlay.classList.add("show");
+
+  setTimeout(() => {
+    levelClearOverlay.classList.remove("show");
+    done?.();
+  }, durationMs);
+}
+
+// --- Create Renderer ---
 const renderer = createRenderer({ ctx, iconAssets });
 
+// --- UI Object Passed To Engine ---
 const ui = {
   levelLabel,
   tipLabel,
@@ -71,11 +92,13 @@ const ui = {
   updateTimerLabel,
 };
 
+// --- Create Engine ---
 const engine = createEngine({
   renderer,
   ui,
   switchToGameScreen: () => switchScreen(gameScreen),
   switchToEndScreen: () => switchScreen(endScreen),
+  showLevelClearOverlay, 
 });
 
 // --- Events ---
@@ -113,4 +136,4 @@ controlButtons.forEach((btn) => {
 // --- Boot ---
 setupHiDpiCanvas();
 preloadLevel1Assets();
-engine.startLoopOnce(); // starts RAF loop (safe even before gameActive)
+engine.startLoopOnce();
