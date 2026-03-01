@@ -27,6 +27,7 @@ https://ncwx.github.io/valentines26-mini-game/
 
 ## Architecture
 
+```
 src/
   main.js              # DOM wiring + application bootstrap
   game/
@@ -38,6 +39,7 @@ src/
 
 public/
   assets/              # game icons (PNG/SVG)
+```
 
 ---
 
